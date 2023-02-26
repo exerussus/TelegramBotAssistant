@@ -1,92 +1,107 @@
-
+#!C:\Users\sokol\PycharmProjects\nextGenBot\venv\Scripts\python
 import datetime
 import telebot
-from data.private import TELEGRAM_TOKEN, NAMES
-from data.commands_setting import COMMANDS_SETTING, reset_user_status
-from bot.chatGpt import ChatGPT
+from data.config import TELEGRAM_TOKEN
+from app.chatGPT.main import ChatGPT
+from tools.sqlSetting import get_access_rights, clean_user_status, get_user_status
+from app.chatGPT.sqlChatGPT import get_dict_bots_for_users
+from tools.apps_getter import get_apps_list
+from requests.exceptions import ReadTimeout
+
+
+def do_func(function, arg=None):
+    try:
+        if arg is None:
+            function()
+        else:
+            function(arg)
+    except ReadTimeout:
+        print("Нет соединения с интернетом...")
 
 
 class TelegramBot:
 
     def __init__(self):
         self.bot = telebot.TeleBot(TELEGRAM_TOKEN)
-        self.name = NAMES
-        self.commands_setting = COMMANDS_SETTING
-        self.actually_status = self.commands_setting["user_status"]
-        self.handler_type = "telegram"
-
+        self.name = {}
+        self.apps_list = get_apps_list()
         self.chat_bot_dict = {}
-        user_id_bot_name_dict = self.commands_setting["chatGPT"]["bot_name_for_current_user"]
-        for user_id_bot_name in user_id_bot_name_dict:
-            self.chat_bot_dict[user_id_bot_name] = ChatGPT(user_id_bot_name_dict[user_id_bot_name])
+        chat_bot_dict = get_dict_bots_for_users()
+        for user_id in chat_bot_dict:
+            self.chat_bot_dict[user_id] = ChatGPT(user_id)
 
     def logger(self, _message):
         """Shows the message data in the console \n
         Показывает данные сообщения из телеграмма в консоли"""
-
+        name = self.name.get(_message.from_user.id)
+        if name is None:
+            name = get_user_status(_message.from_user.id)["user_name"]
         print(
-            f"{datetime.datetime.now()} "
+            f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} "
             f"{_message.from_user.id} "
-            f"{self.name.get(str(_message.from_user.id))}: "
+            f"{name}: "
             f"{_message.text}"
         )
 
-    def command_check(self, message):
-        """Парсит сообщение и ищет в нем команду, возвращает название команды, если нашел"""
-        for command_name in self.commands_setting:
-            if command_name != "user_status":
-                if message.text in self.commands_setting[command_name]["activate"]:
-                    return command_name
+    def is_it_app_check(self, message):
+        """Проверяет, является ли текст активатором приложения."""
+        _text = message.text
+        for app in self.apps_list:
+            if _text in app.activate:
+                return app
 
-    def user_check(self, _id: str, _script_name: str):
-        """Checks the user's permissions to use the command \n
+    def user_access_to_app_check(self, user_id: int, app_name: str):
+        """Checks the user's permissions to use the app \n
         Проверяет права юзера на использование команды"""
-        if str(_id) in self.commands_setting[_script_name]["user"]:
-            return True
-        else:
-            return False
+        return get_access_rights(user_id=user_id, app_name=app_name)
 
-    def standard_command(self, _message, _script_name: str,):
-        """Executes standard commands from the command folder \n
-        Выполняет стандартную команду из папки command"""
-        user_id = _message.from_user.id
-        if self.user_check(user_id, _script_name):
-            self.actually_status[str(user_id)], self.commands_setting = self.commands_setting[_script_name]["script"](
-                                                                                 _message,
-                                                                                 self.bot,
-                                                                                 self.actually_status[str(user_id)],
-                                                                                 self.commands_setting)
+    def standard_command(self, message, app):
+        """Executes standard commands from the app folder \n
+        Выполняет стандартную команду из папки app"""
+        user_id = message.from_user.id
+        print(f"standard_command: app = {app}")
+        if self.user_access_to_app_check(user_id=user_id, app_name=app.name):
+            app.command_run(message, self.bot)
 
         else:
-            self.bot.send_message(_message.from_user.id, "У вас нет прав на использование данной команды.")
-            self.actually_status[str(user_id)] = reset_user_status(self.commands_setting, str(user_id))
+            self.bot.send_message(message.from_user.id, "У вас нет прав на использование данной команды.")
+            clean_user_status(user_id=user_id)
+
+    def standard_command_continuation(self, message, app_name):
+        """Продолжает работу app"""
+        user_id = message.from_user.id
+        app = ""
+        for _app in self.apps_list:
+            if _app.name == app_name:
+                app = _app
+                break
+
+        if self.user_access_to_app_check(user_id=user_id, app_name=app.name):
+            app.command_run(message, self.bot)
+
+        else:
+            self.bot.send_message(message.from_user.id, f"id: {user_id}. У вас нет прав на использование данной команды.")
+            clean_user_status(user_id=user_id)
 
     def command_handler(self, message):
-        """Defines and executes a standard or ChatGPT command \n
+        """Defines and executes a standard or ChatGPT app \n
         Определяет и выполняет стандартную или ChatGPT команду"""
         user_id = message.from_user.id
-        try:
-            activated_script = self.actually_status[str(user_id)]["name"]
-        except KeyError:
-            full_name = message.chat.first_name + " " + message.chat.last_name + " " + message.chat.username
-            print("\033[32m" + f"Новый старт. id:{user_id}, name:{full_name}" + "\033[0m")
-            reset_user_status(self.commands_setting, str(user_id))
-            self.actually_status[str(user_id)] = reset_user_status(self.commands_setting, str(user_id))
-            activated_script = self.actually_status[str(user_id)]["name"]
-        if activated_script is None:
-            command_name = self.command_check(message)
-            if command_name is not None:
-                self.standard_command(message, command_name)  # Тут скрипт команды
+        user_status = get_user_status(user_id=user_id)
+        if user_status["activated_app"] == "":
+            app = self.is_it_app_check(message)
+            if app is not None:
+                self.standard_command(message, app)  # Тут скрипт команды
             else:
-                if str(user_id) in self.commands_setting["chatGPT"]["user"]:
+                if get_access_rights(user_id=user_id, app_name="chatGPT"):
                     self.bot.send_message(user_id,
-                                          self.chat_bot_dict[str(user_id)].response(message),
+                                          self.chat_bot_dict[user_id].response(message),
                                           reply_markup=telebot.types.ReplyKeyboardRemove())  # тут ChatGPT
                 else:
-                    self.bot.send_message(user_id, "Вы не имеете прав для использования данного бота.",
+                    self.bot.send_message(user_id, f"id: {user_id}. Вы не имеете прав для использования ChatGPT.",
                                           reply_markup=telebot.types.ReplyKeyboardRemove())
         else:
-            self.standard_command(message, self.actually_status[str(user_id)]["name"])
+            self.standard_command_continuation(message, user_status["activated_app"])
 
     def run(self):
         """Runs the main logic"""
@@ -94,10 +109,8 @@ class TelegramBot:
         @self.bot.message_handler(content_types=['text'])
         def get_text_messages(message):
 
-            self.logger(message)
-            self.command_handler(message)
-
-            # bot.send_message(message.from_user.id, f"Ваш ID: {message.from_user.id}")
+            do_func(self.logger, message)
+            do_func(self.command_handler, message)
 
         self.bot.polling(none_stop=True, interval=0)
 
@@ -109,4 +122,3 @@ def return_exemplar():
 if __name__ == "__main__":
     telegramBot = TelegramBot()
     telegramBot.run()
-

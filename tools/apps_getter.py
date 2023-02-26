@@ -1,0 +1,23 @@
+from os import walk
+from importlib import import_module
+
+
+def get_import_list():
+    import_list = []
+    app_root = walk('app')
+    for root, dirs, files in app_root:
+        if files is not None:
+            for file in files:
+                if file.endswith('.py') and file == "main.py":
+                    import_list.append(".".join(root.split("\\")) + ".main")
+    return import_list
+
+
+def get_apps_list():
+    import_list = get_import_list()
+    apps_list = []
+    for path in import_list:
+        module = import_module(path)
+        apps_list.append(module.AppSample)
+    print(f"get_apps_list: {apps_list}")
+    return apps_list
