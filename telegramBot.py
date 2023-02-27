@@ -7,6 +7,7 @@ from tools.sqlSetting import get_access_rights, clean_user_status, get_user_stat
 from app.chatGPT.sqlChatGPT import get_dict_bots_for_users
 from tools.apps_getter import get_apps_list
 from requests.exceptions import ReadTimeout
+from tools.debuger import debug_log
 
 
 def do_func(function, arg=None):
@@ -16,7 +17,7 @@ def do_func(function, arg=None):
         else:
             function(arg)
     except ReadTimeout:
-        print("Нет соединения с интернетом...")
+        debug_log(debug_mode=True, text="Нет соединения с интернетом...", color="red")
 
 
 class TelegramBot:
@@ -36,6 +37,8 @@ class TelegramBot:
         name = self.name.get(_message.from_user.id)
         if name is None:
             name = get_user_status(_message.from_user.id)["user_name"]
+            if name is None:
+                name = _message.from_user.first_name
         print(
             f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')} "
             f"{_message.from_user.id} "

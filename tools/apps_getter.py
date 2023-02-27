@@ -19,5 +19,4 @@ def get_apps_list():
     for path in import_list:
         module = import_module(path)
         apps_list.append(module.AppSample)
-    print(f"get_apps_list: {apps_list}")
     return apps_list

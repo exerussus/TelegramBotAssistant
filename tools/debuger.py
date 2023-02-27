@@ -1,6 +1,7 @@
 
 from datetime import datetime
-
+from colorama import init, Fore
+init(autoreset=True)
 
 def debug_log(debug_mode,
               app_name="",
@@ -8,21 +9,21 @@ def debug_log(debug_mode,
               scenario_start="",
               scenario_end="",
               condition="",
-              color="grey"):
+              color="white"):
 
     if debug_mode:
         text_color = ""
         match color:
-            case "grey":
-                text_color = "0m"
+            case "white":
+                text_color = Fore.WHITE
             case "blue":
-                text_color = "34m"
+                text_color = Fore.BLUE
             case "red":
-                text_color = "31m"
+                text_color = Fore.RED
             case "green":
-                text_color = "32m"
+                text_color = Fore.GREEN
             case _:
-                text_color = "0m"
+                text_color = Fore.RESET
 
         time = datetime.now()
         time_now = time.strftime("%H:%M:%S")
@@ -34,8 +35,7 @@ def debug_log(debug_mode,
         condition = ("Условие: " + condition + ". ") if condition != "" else ""
         text = ("Комментарий: " + text + ". ") if text != "" else ""
 
-        print("\033[" + text_color + f"{app_name}{pref}{scenario_end}{scenario_start}{condition}{text} |"
-                                     f"| {time_now}\033[0m")
+        print(text_color + f"{app_name}{pref}{scenario_end}{scenario_start}{condition}{text} || {time_now}")
 
 
 if __name__ == "__main__":
