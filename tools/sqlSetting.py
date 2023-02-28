@@ -144,10 +144,3 @@ def add_apps(*apps_names: str):
     _classExemplar.conn.close()
 
 
-if __name__ == "__main__":
-    _user_id = 1557628538
-    _app_name = "points"
-    _user_name = "Илья"
-    # set_user_name(_user_id, _user_name)
-    add_access_rights(user_id=_user_id, app_name=_app_name)
-
