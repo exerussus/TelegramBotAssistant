@@ -1,4 +1,4 @@
-#!C:\Users\sokol\PycharmProjects\nextGenBot\venv\Scripts\python
+
 import datetime
 import telebot
 from data.config import TELEGRAM_TOKEN
