@@ -1,7 +1,7 @@
 
 import datetime
 import telebot
-from data.config import TELEGRAM_TOKEN
+from data.config import TELEGRAM_TOKEN, CHAT_GPT_TOKEN
 from app.chatGPT.main import ChatGPT
 from tools.sqlSetting import get_access_rights, clean_user_status, get_user_status
 from app.chatGPT.sqlChatGPT import get_dict_bots_for_users
@@ -22,14 +22,14 @@ def do_func(function, arg=None):
 
 class TelegramBot:
 
-    def __init__(self):
-        self.bot = telebot.TeleBot(TELEGRAM_TOKEN)
+    def __init__(self, telegram_token=TELEGRAM_TOKEN, openai_token=CHAT_GPT_TOKEN):
+        self.bot = telebot.TeleBot(telegram_token)
         self.name = {}
         self.apps_list = get_apps_list()
         self.chat_bot_dict = {}
         chat_bot_dict = get_dict_bots_for_users()
         for user_id in chat_bot_dict:
-            self.chat_bot_dict[user_id] = ChatGPT(user_id)
+            self.chat_bot_dict[user_id] = ChatGPT(user_id, openai_token)
 
     def logger(self, _message):
         """Shows the message data in the console \n

@@ -1,0 +1,6 @@
+/privateStart.py
+/data/privateData.py
+/data/chatModel.db
+/data/application.db
+/data/settings.db
+**/__pycache__

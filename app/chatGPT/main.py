@@ -1,5 +1,4 @@
 import openai
-from data.config import CHAT_GPT_TOKEN
 from app.chatGPT.sqlChatGPT import get_priority_memory, get_bot_for_user, add_operation_memory, get_operation_memory
 
 
@@ -10,8 +9,8 @@ class AppSample:
 
 
 class ChatGPT:
-    def __init__(self, user_id: int):
-        openai.api_key = CHAT_GPT_TOKEN
+    def __init__(self, user_id: int, openai_token: str):
+        openai.api_key = openai_token
         self.user_id = user_id
         self.req_resp_history = []
         self.nameBot = get_bot_for_user(self.user_id)
