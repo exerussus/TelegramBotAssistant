@@ -161,8 +161,3 @@ def set_bot_for_user(user_id: int, bot_name: str):
     _classExemplar.conn.close()
 
 
-if __name__ == "__main__":
-    _user_id = 1557628538
-    _memory_size = 16
-    _bot_name = "agny"
-    print(get_priority_memory(_user_id) + get_operation_memory(_bot_name, _memory_size))
